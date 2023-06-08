@@ -1,0 +1,13 @@
+extends _layout
+block content
+  h1 CHAT BOX
+  hr
+  .bg-secondary.rounded.p-3.position-relative(style="height:500px")
+    #chatMessage
+    .position-absolute(style="bottom:0.5rem;left:0.5rem;right:0.5rem;")
+      form(onsubmit="handlerSumit(event)")
+        .input-group
+          input.form-control(id="message" type="text" name="message" autocomplete="off")
+          button.btn.btn-primary send
+block script
+  script(src="/chat.js")

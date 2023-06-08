@@ -1,11 +1,10 @@
 const express = require("express");
+const expressWs = require("express-ws");
 const path = require("path");
-const { EventEmitter } = require("events");
-
 const app = express();
-const chatEmiter = new EventEmitter();
+const wsInstance = expressWs(app);
 const port = 3000;
-const chatMessage = [];
+const rooms = {};
 
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "./views"));
@@ -16,25 +15,33 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.render("index");
 });
-
-app.get("/chat", (req, res) => {
-  res.writeHead(200, {
-    "Content-type": "text/event-stream",
-    Connection: "keep-alive",
-    "Cache-Control": "no-cache",
-  });
-  const onNewMessageHandler = (message) => {
-    res.write(`data:${JSON.stringify({ message })}\n\n`);
-  };
-  chatEmiter.on("newMessage", onNewMessageHandler);
-  req.on("close", () => chatEmiter.off("newMessage", onNewMessageHandler));
-  // res.json({ chatMessage });
+app.get("/chat/:room", (req, res) => {
+  res.render("chat");
 });
-
-app.post("/chat", (req, res) => {
-  chatMessage.push(req.body.message);
-  chatEmiter.emit("newMessage", req.body.message);
-  res.end();
+app.ws("/chat/:room", (ws, req) => {
+  //let room = rooms[req.params.room];
+  if (!rooms[req.params.room]) {
+    rooms[req.params.room] = {};
+  }
+  const room = rooms[req.params.room];
+  if (!room.users) {
+    room.users = [];
+  }
+  if (!room.message) {
+    room.message = [];
+  }
+  room.users.push(ws);
+  ws.on("message", function (data) {
+    room.message.push(data);
+    for (const user of room.users) {
+      user.send(data);
+    }
+  });
+  ws.on("close", () => {
+    room.users = room.users.filter((user) => {
+      return user !== ws;
+    });
+  });
 });
 
 app.listen(port, () => {
