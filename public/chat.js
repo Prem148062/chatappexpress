@@ -1,24 +1,21 @@
 const message = document.getElementById("message");
 const chatMessage = document.getElementById("chatMessage");
-
-const chatEvent = new EventSource("http://localhost:3000/chat");
-chatEvent.addEventListener("message", (event) => {
+const chatEvent = new WebSocket(`ws://${location.host}${location.pathname}`);
+chatEvent.addEventListener("open", () => {
+  console.log("Connected to ws .....");
+});
+chatEvent.addEventListener("close", () => {
+  console.log("Disconnected from ws .....");
+});
+chatEvent.addEventListener("message", ({ data }) => {
   const div = document.createElement("div");
   div.classList.add("message");
-  div.innerText = JSON.parse(event.data).message;
+  div.innerText = data;
   chatMessage.append(div);
 });
 
 async function handlerSumit(event) {
   event.preventDefault();
-
-  await fetch("/chat", {
-    method: "post",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ message: message.value }),
-  });
+  chatEvent.send(message.value);
   message.value = "";
 }
